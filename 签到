@@ -1,0 +1,122 @@
+import requests
+from selenium import webdriver
+from lxml import html
+import re
+import time
+import json
+from loguru import logger
+import os
+from openpyxl import Workbook
+from openpyxl import load_workbook
+import datetime
+from selenium.webdriver.support.ui import Select
+from selenium.webdriver import ActionChains
+from selenium.webdriver.support.wait import WebDriverWait
+
+
+'''
+思路：
+一、手动登录metamask
+二、创建账号：点击头像-点击创建账户-输入账户名称-点击创建-创建完成-点击右上角三个点-点击账户详情-获取地址-点击导出私钥-输入密码-点击确认-获取私钥-点击完成
+三、重复执行第二步
+'''
+class Create_account(object):
+    def __init__(self):
+        # 记录账号信息
+        a = os.path.exists('批量创建账号记录')
+        if not a:
+            os.makedirs('批量创建账号记录')
+        self.wb = Workbook()
+        self.name = '批量创建账号记录.xlsx'
+        self.path = './批量创建账号记录/' + self.name
+        wb_sheet = self.wb.create_sheet(self.name, index=0)
+        wb_sheet.cell(1, 1, '账户名')
+        wb_sheet.cell(1, 2, '地址')
+        wb_sheet.cell(1, 3, '私钥')
+        self.wb.save(self.path)
+        self.row = 2
+
+    def account(self, account_name):
+        # 1.点击头像
+        driver.find_elements_by_css_selector('svg')[0].click()
+        time.sleep(2)
+        # 2.点击创建账户
+        driver.find_element_by_xpath('//div[@class="account-menu__item account-menu__item--clickable"]').click()
+        time.sleep(1)
+        # 3.输入账户名
+        driver.find_element_by_css_selector('input.new-account-create-form__input').send_keys(account_name)
+        # 4.点击创建
+        #driver.find_element_by_css_selector('button.button btn-secondary btn--large new-account-create-form__button').click()
+        driver.find_element_by_xpath('//button[@class="button btn-secondary btn--large new-account-create-form__button"]').click()
+        time.sleep(5)
+        # 5.点击右上角三个点
+        # driver.find_element_by_css_selector('button.fas fa-ellipsis-v menu-bar__account-options').click()
+        #driver.find_element_by_xpath('//button[@class="fas fa-ellipsis-v menu-bar__account-options"]').click()
+        driver.find_element_by_xpath('//*[@id="app-content"]/div/div[4]/div/div/div/div[1]/button').click()
+
+        # 6.点击账户详情
+        # driver.find_elements_by_css_selector('button.menu-item')[0].click()
+        driver.find_element_by_xpath('//button[@class="menu-item"]').click()
+
+        # 7.获取地址
+        address = driver.find_element_by_xpath('//input[@class="readonly-input__input"]').get_attribute('value')
+        print(address)
+
+        # 8.点击导出私钥
+        # driver.find_elements_by_css_selector('button.button btn-secondary account-details-modal__button')[1].click()
+        driver.find_elements_by_xpath('//button[@class="button btn-secondary account-details-modal__button"]')[1].click()
+        # 9.输入密码
+        driver.find_element_by_css_selector('input.export-private-key-modal__password-input').send_keys('a13776754756')
+        # 10.点击确认
+        #driver.find_element_by_css_selector('button.button btn-secondary btn--large export-private-key-modal__button').click()
+        driver.find_element_by_xpath('//button[@class="button btn-secondary btn--large export-private-key-modal__button"]').click()
+        time.sleep(2)
+        # 11.获取私钥
+        # primary_key = driver.find_element_by_css_selector('textarea.readonly-input__input export-private-key-modal__password-display-textarea').text
+        # primary_key = driver.find_element_by_xpath('//textarea[@class="readonly-input__input export-private-key-modal__password-display-textarea"]').text
+        html1 = html.etree.HTML(driver.page_source)
+        primary_key = html1.xpath('//*[@id="app-content"]/div/span/div[1]/div/div/div/div[5]/div/textarea/text()')
+        print(primary_key)
+        # 12.点击完成
+        #driver.find_element_by_css_selector('button.button btn-secondary btn--large export-private-key-modal__button').click()
+        driver.find_element_by_xpath('//button[@class="button btn-secondary btn--large export-private-key-modal__button"]').click()
+        if not primary_key:
+            primary_key = ['请手动查询']
+
+        # 将获取的地址、私钥存入excel、
+        wb1 = load_workbook(self.path)
+        sheet = wb1[self.name]
+        sheet.cell(self.row, 1, account_name)
+        sheet.cell(self.row, 2, address)
+        sheet.cell(self.row, 3, primary_key[0])
+        wb1.save(self.path)
+        self.row += 1
+
+#path = 'C:/Users/Administrator.USER-20191227TJ/AppData/Local/Google/Chrome/Application/chromedriver.exe'
+path = 'C:/Users/Administrator/AppData/Local/Google/Chrome/Application/chromedriver.exe'
+# 启用带插件的浏览器
+option = webdriver.ChromeOptions()
+option.add_argument("--user-data-dir="+r"C:/Users/Administrator/AppData/Local/Google/Chrome/User Data/")
+#option.add_argument("--user-data-dir="+r"C:/Users/Administrator.USER-20191227TJ/AppData/Local/Google/Chrome/User Data/")
+driver = webdriver.Chrome(chrome_options=option)
+
+# 打开百度，最大化网页
+driver.get('https://www.baidu.com/')
+time.sleep(2)
+driver.maximize_window()
+time.sleep(1)
+# 第一步：打开metamask网页，手动登录账号
+js = 'window.open("chrome-extension://dccjcblagkdklemplokndodnhigeodol/home.html")'
+#js = 'window.open("chrome-extension://nhkpkpfegkloepkmghkkomgcemiokpbh/home.html#unlock")'
+driver.execute_script(js)
+windows = driver.window_handles
+time.sleep(1)
+driver.switch_to.window(windows[-1])
+
+# 暂停 手动登录账号
+time.sleep(20)
+
+
+create_account = Create_account()
+for i in range(873, 1001):
+    create_account.account(i)
